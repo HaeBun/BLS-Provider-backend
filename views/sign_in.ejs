@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SNEDU | BLS-Provider 심폐소생술 교육 프로그램</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <style>
+    /* 기존 스타일 (PC 화면) */
+    .login-panel {
+      width: 600px;
+      margin: 100px auto;
+      padding: 30px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+    }
+    .logo {
+      display: flex; 
+      align-items: flex-start; 
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo img {
+      width: 100px; 
+      height: 100px; 
+    }  
+    .login-buttons .btn {
+      text-align: center;
+      margin-top: 16px;
+      border-radius: 20px;
+    }
+    .google  {
+      border: 1px solid #666; 
+    }
+    .title {
+      text-align: left;
+      margin-left: 20px;
+    }
+
+    .login-buttons a[href="/auth/kakao"]:hover {
+      background-color: #FFE8A3; /* 마우스 오버 시 배경색 */
+    }
+
+    /* 모바일 화면에 적용될 스타일 */
+    @media (max-width: 768px) { 
+      .login-panel {
+        width: 90%; 
+        margin: 50px auto; 
+        padding: 20px; 
+      }
+      .logo img {
+        width: 10vw; 
+        height: auto; 
+      }
+      .title {
+        font-size: 1.5rem;
+        margin-left: 10px;
+      }
+      .title h2 {
+        font-size: 1rem; 
+      }
+      .title h5 {
+        font-size: 0.8rem; 
+      }
+      .login-text {
+        font-size: 0.9rem;
+        color: #333;
+      }
+      .login-buttons a[href="/auth/kakao"]:hover {
+        background-color: #FFE8A3; /* 마우스 오버 시 배경색 */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container"> 
+    <div class="login-panel">
+      <div class="logo">
+        <img src="/images/snedu_logo.png" alt="Logo"> 
+        <div class="title">
+          <h2>Student Nurse Education</h2>
+          <h5>BLS-Provider 심폐소생술 교육 프로그램</h5>
+        </div>
+      </div>
+
+      <br>
+      
+      <h1 class="title">로그인</h1>
+      <div class="login-buttons">
+        <a class="btn btn-light btn-lg btn-block login-text google" onclick="googleSignIn()"> 
+          <img src="/images/google_logo.png" alt="Google Logo" style="height: 30px; margin-right: 10px;"> Google 계정으로 로그인
+        </a>
+        <a class="btn btn-light btn-lg btn-block login-text kakao" style="background-color: #FEE500;" onclick="kakaoSignIn()">
+          <img src="/images/kakao_logo.png" alt="Kakao Logo" style="height: 30px; margin-right: 10px;"> 카카오 계정으로 로그인
+        </a>
+      </div>
+    </div>
+  </div>
+  <script>
+    const firebaseAuth = <%- JSON.stringify(firebase) %>;
+    const kakaoAuth = <%- JSON.stringify(kakao) %>;
+
+    // Firebase 초기화
+    firebase.initializeApp(firebaseAuth);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    function googleSignIn() {
+      auth.signInWithPopup(provider)
+      .then((result) => {
+        const user = result.user;
+        window.postMessage('popupClosed', '*');
+
+        // 사용자 정보를 서버로 전송
+        const userData = {
+          userName: user.displayName,
+          socialType: 'google',
+          socialUid: user.uid
+        };
+        fetch('/auth/google', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        })
+        .then(response => {
+          // 서버 응답 처리 (예: 리디렉션 또는 페이지 업데이트)
+          if (response.ok) {
+            // 성공적으로 처리되면 리디렉션
+            window.location.href = '/'; 
+          } else {
+            // 오류 처리
+            console.error('로그인 실패');
+          }
+      })
+      .catch(error => console.error('Error:', error)); 
+
+
+        return user.getIdToken(); // idToken을 반환 (필요한 경우)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+    }
+
+    function kakaoSignIn() {
+        window.open(kakaoAuth, '카카오 로그인', 'width=400,height=500');
+    }
+
+    window.addEventListener('message', (event) => {
+        if (event.data === 'popupClosed') {
+        
+        // 로그인 완료 시 /home으로 디렉션. 아래 alert는 제거 후 진행
+        alert("로그인 성공. 다음 서비스는 준비중입니다.");
+    }
+});
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>서일대학교 간호학과 BLS-Provider 플레이어</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .input-area, .player-container {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0069d9;
+    }
+
+    .video-info {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .player-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .player-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 테이블 스타일 추가 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed; /* 칼럼 너비를 고정 */
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      width: 50%; /* 각 칼럼의 너비를 50%로 설정 */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <table>
+      <tr>
+        <th>
+          <div class="input-area">
+            <input type="text" id="title" placeholder="제목을 입력해주세요.">
+            <textarea id="content" placeholder="내용을 입력해주세요."></textarea>
+            <div class="input-group">
+              <input type="text" id="youtubeUrl" placeholder="YouTube URL을 입력해주세요.">
+              <button onclick="loadVideo()">확인</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>영상 ID</th>
+                  <th>영상 길이</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div id="video-id"></div>
+                  </td>
+                  <td>
+                    <div id="video-duration">영상을 실행해 주세요.</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <button onclick="uploadVideo()">업로드</button> 
+          </div>
+        </th>
+        <th>
+          <div class="player-container">
+            <iframe id="player" src="https://www.youtube.com/embed/?enablejsapi=1" frameborder="0" allowfullscreen>
+            </iframe>
+          </div>
+        </th>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    var player;
+
+    function onYouTubeIframeAPIReady() {
+      console.log("onYouTubeIframeAPIReady() 함수 호출됨");
+      player = new YT.Player('player', {
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          loop: 0,
+          modestbranding: 1,
+          rel: 0
+        },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerReady(event) {
+      console.log("onPlayerReady() 함수 호출됨");
+    }
+
+    // 초 단위의 시간을 분:초 형식으로 변환하는 함수
+    function formatTime(seconds) {
+      console.log("formatTime() 함수 호출됨:", seconds);
+      var minutes = Math.floor(seconds / 60);
+      var remainingSeconds = Math.floor(seconds % 60);
+      remainingSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
+      return minutes + ':' + remainingSeconds;
+    }
+
+    function parseTime(timeString) {
+      const [minutes, seconds] = timeString.split(':').map(Number);
+      return minutes * 60 + seconds;
+    }
+
+    function onPlayerStateChange(event) {
+      console.log("onPlayerStateChange() 함수 호출됨:", event.data);
+
+      switch (event.data) {
+        case YT.PlayerState.PLAYING:
+        console.log("영상 재생 시작");
+
+        // durationDisplay가 이미 존재하는지 확인
+        var durationDisplay = document.getElementById('video-duration'); 
+        if (!durationDisplay) {
+            // durationDisplay가 존재하지 않으면 새로 생성
+            durationDisplay = document.createElement('div');
+            durationDisplay.id = 'video-duration'; 
+
+            // 입력 필드 아래에 영상 길이 표시
+            var inputGroup = document.querySelector('.input-group');
+            inputGroup.parentNode.insertBefore(durationDisplay, inputGroup.nextSibling);
+        }
+
+        // durationDisplay의 텍스트 콘텐츠 업데이트
+        var duration = player.getDuration();
+        durationDisplay.textContent = formatTime(duration);
+
+        break;
+          break;
+        case YT.PlayerState.PAUSED:
+          console.log("영상 일시 중지");
+          break;
+        case YT.PlayerState.ENDED:
+          console.log("영상 종료");
+          break;
+        case YT.PlayerState.FULLSCREEN:
+          console.log("전체 화면 상태 변경:", event.target.isFullscreen());
+          break;
+      }
+    }
+
+    function loadVideo() {
+        var youtubeUrl = document.getElementById('youtubeUrl').value;
+        var videoId = youtubeUrl.match(/v=([^&]+)/);
+
+        if (videoId && videoId[1]) {
+            videoId = videoId[1];
+            player.loadVideoById(videoId);
+            document.querySelector('.player-container').style.display = 'block';
+
+            // 동영상 ID 표시
+            document.getElementById('video-id').textContent = videoId; 
+
+            document.getElementById('video-duration').textContent = '영상을 실행해 주세요.'; 
+        } else {
+            alert("유효한 YouTube URL을 입력하세요.");
+        }
+    }
+
+    async function uploadVideo() {
+      var title = document.getElementById('title').value;
+      var content = document.getElementById('content').value;
+      var youtubeUrl = document.getElementById('youtubeUrl').value;
+      var videoId = document.getElementById('video-id').textContent;
+      var videoDuration = document.getElementById('video-duration').textContent;
+
+      // videoId, videoDuration 값이 유효한지 확인
+      if (!videoId || videoDuration === '영상을 실행해 주세요.') {
+        alert('영상 정보를 먼저 확인해주세요.');
+        return;
+      }
+
+      // 서버로 데이터 전송
+      var formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', content);
+      formData.append('youtubeUrl', videoId);
+      formData.append('videoDuration', parseTime(videoDuration));
+
+      try {
+  const response = await fetch('/video_upload', { 
+    method: 'POST', 
+    body: formData
+  });
+
+  if (response.ok) {
+    const data = await response.json(); // 응답 데이터를 JSON으로 파싱
+    console.log('비디오 정보 전송 성공:', data); 
+    alert('업로드 성공!');
+  } else {
+    console.error('비디오 정보 전송 실패');
+    alert('업로드 실패!');
+  }
+} catch (error) {
+  console.error('비디오 정보 전송 에러:', error);
+  alert('업로드 에러!');
+}
+    }
+  </script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
