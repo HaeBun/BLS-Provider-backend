@@ -106,55 +106,70 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    function googleSignIn() {
-      auth.signInWithPopup(provider)
-      .then((result) => {
-        const user = result.user;
-        window.postMessage('popupClosed', '*');
+    async function googleSignIn() {
+      try {
+      const result = await auth.signInWithPopup(provider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
 
-        // 사용자 정보를 서버로 전송
-        const userData = {
-          userName: user.displayName,
-          socialType: 'google',
-          socialUid: user.uid
-        };
-        fetch('/auth/google', { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData)
-        })
-        .then(response => {
-          // 서버 응답 처리 (예: 리디렉션 또는 페이지 업데이트)
-          if (response.ok) {
-            // 성공적으로 처리되면 리디렉션
-            window.location.href = '/'; 
-          } else {
-            // 오류 처리
-            console.error('로그인 실패');
-          }
-      })
-      .catch(error => console.error('Error:', error)); 
+     // 사용자 정보를 서버로 전송
+      const userData = {
+        userName: user.displayName,
+        socialType: 'google',
+        socialUid: user.uid,
+        socialIdToken: idToken
+      };
 
-
-        return user.getIdToken(); // idToken을 반환 (필요한 경우)
-      })
-      .catch((error) => {
-        console.error('Error:', error);
+      const response = await fetch('/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        mode: 'cors'
       });
+
+      // 성공적으로 로그인 처리 후 리다이렉트 또는 다른 동작 수행
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/home'; // 리다이렉션할 URL
+
+      // Authorization 헤더 값을 hidden input으로 추가
+      const hiddenField = document.createElement('input');
+      hiddenField.type = 'hidden';
+      hiddenField.name = 'authorization'; // 필드 이름
+      hiddenField.value = 'Bearer ' + idToken; // Authorization 헤더 값 (Bearer 토큰)
+      form.appendChild(hiddenField);
+
+      // 폼을 body에 추가하고 제출
+      document.body.appendChild(form);
+      form.submit();
+
+      } catch (error) {
+        console.error('Error:', error);
+      }
     }
 
     function kakaoSignIn() {
-        window.open(kakaoAuth, '카카오 로그인', 'width=400,height=500');
+      window.open(kakaoAuth, '카카오 로그인', 'width=400,height=500');
     }
 
     window.addEventListener('message', (event) => {
-        if (event.data === 'popupClosed') {
-        
-        // 로그인 완료 시 /home으로 디렉션. 아래 alert는 제거 후 진행
-        alert("로그인 성공. 다음 서비스는 준비중입니다.");
-    }
-});
+      if (event.data === 'popupClosed') {
+        alert('test value :', event.data.idToken);
 
+        fetch('./home', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: event.data.idToken }),
+          mode: 'cors'
+        })
+        .then(response => {
+          if (response.ok) {
+            window.location.href = '/home';
+          }
+        })
+        .catch(error => console.error('Error:', error));
+      }
+    });
   </script>
 </body>
 </html>
