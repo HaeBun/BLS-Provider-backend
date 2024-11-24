@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모바일 YouTube 플레이어</title>
+<style>
+  body { margin: 0; }
+  .player-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 비율 유지 */
+    height: 0;
+  }
+  .player-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; 
+  }
+</style>
+</head>
+<body>
+<div class="player-container">
+<iframe id="player" 
+        src="https://www.youtube.com/embed/<%= videoId %>?autoplay=0&controls=1&showinfo=0&modestbranding=1&rel=0&fs=1&enablejsapi=1&start=<%= startSeconds %>" 
+        frameborder="0" 
+        allowfullscreen>
+</iframe>
+</div>
+<script>
+  var player; // player 객체를 전역 변수로 선언
+  var currentViewDuration; // 현재 시청 시간
+  var lastRecordedTime = 0; // 마지막으로 기록된 시간
+  var isPlaying = false; // 현재 재생 중인지 여부
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('player', {
+      playerVars: { // playerVars 추가
+        autoplay: 0,
+        controls: 1,
+        loop: 0,
+        modestbranding: 1,
+        rel: 0
+      },
+      events: {
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+
+  function onPlayerReady(event) {
+    console.log("플레이어 준비 완료");
+    // 플레이어가 준비되면 초기 재생 시간을 전달합니다.
+    currentViewDuration = 0;
+  }
+
+  function onPlayerStateChange(event) {
+    console.log("플레이어 상태 변경:", event.data);
+    console.log("userToken : " + player.getCurrentTime());
+
+    // 플레이어 상태에 따라 Android 네이티브 코드에 이벤트를 전달합니다.
+    switch (event.data) {
+      case YT.PlayerState.PLAYING:
+          isPlaying = true;
+          lastRecordedTime = player.getCurrentTime();
+          console.log("PLAYING :" + player.getCurrentTime());
+      break;
+      case YT.PlayerState.PAUSED:
+          isPlaying = false;
+          updateViewDuration();
+          console.log("PAUSED :" + player.getCurrentTime());
+        break;
+      case YT.PlayerState.ENDED:
+          isPlaying = false;
+          updateViewDuration();
+          console.log("ENDED :" + player.getCurrentTime());
+        break;
+      case YT.PlayerState.FULLSCREEN:
+        Android.onFullScreen(false); // 전체화면 상태 전달
+
+        // 전체화면 모드일 때 화면 회전
+        if (event.target.isFullscreen()) {
+          // 가로 모드로 회전
+          screen.orientation.lock('landscape-primary');
+        } else {
+          // 세로 모드로 회전
+          screen.orientation.lock('portrait-primary');
+        }
+        break;
+    }
+  }
+
+  function updateViewDuration() {
+    if (isPlaying) {
+      currentViewDuration += player.getCurrentTime() - lastRecordedTime;
+      lastRecordedTime = player.getCurrentTime();
+    }
+
+    // views 테이블에 시청 정보 저장 또는 업데이트
+    // (아래 2번 항목 참조)
+    updateViewsTable(currentViewDuration); 
+  }
+
+  setInterval(updateViewDuration, 5000); 
+
+  function updateViewsTable(currentViewDuration) {
+  // 1. authorization을 사용하여 auths 테이블에서 user_id 조회
+  // 2. videoId를 사용하여 videos 테이블에서 video_id 조회
+  // 3. user_id, video_id, currentViewDuration을 사용하여 views 테이블에 저장 또는 업데이트
+
+  // AJAX 또는 fetch API를 사용하여 서버에 데이터 전송
+  fetch('/update_views', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      authorization: '<%= authorization %>', // EJS를 사용하여 authorization 값 전달
+      videoId: '<%= videoId %>', // EJS를 사용하여 videoId 값 전달
+      currentViewDuration: currentViewDuration
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('시청 정보 업데이트 성공:', data);
+  })
+  .catch(error => {
+    console.error('시청 정보 업데이트 실패:', error);
+  });
+}
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
