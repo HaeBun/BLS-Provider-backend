@@ -1,0 +1,5 @@
+해당 폴더에는 SNS Auth에 사용되는 Key 와 Token을 포함하고 있습니다.
+
+- auth/kakaoAuth
+- auth/firebaseAuth
+- connectionPool
