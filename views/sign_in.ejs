@@ -149,25 +149,33 @@
     }
 
     function kakaoSignIn() {
-      window.open(kakaoAuth, '카카오 로그인', 'width=400,height=500');
+      if (window.innerWidth <= 768) { // 모바일 화면인지 확인
+        alert("카카오 로그인 서비스는 현재 PC에서만 지원하고 있습니다."); 
+        return; // 함수 실행 중단
+      } else {
+        window.location.href = kakaoAuth; // PC 화면에서는 기존 카카오 로그인 실행
+      }
     }
 
     window.addEventListener('message', (event) => {
       if (event.data === 'popupClosed') {
         alert('test value :', event.data.idToken);
 
-        fetch('./home', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken: event.data.idToken }),
-          mode: 'cors'
-        })
-        .then(response => {
-          if (response.ok) {
-            window.location.href = '/home';
-          }
-        })
-        .catch(error => console.error('Error:', error));
+        // 성공적으로 로그인 처리 후 리다이렉트 또는 다른 동작 수행
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/home'; // 리다이렉션할 URL
+
+        // Authorization 헤더 값을 hidden input으로 추가
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = 'authorization'; // 필드 이름
+        hiddenField.value = 'Bearer ' + event.data.idToken; // Authorization 헤더 값 (Bearer 토큰)
+        form.appendChild(hiddenField);
+
+        // 폼을 body에 추가하고 제출
+        document.body.appendChild(form);
+        form.submit();
       }
     });
   </script>
