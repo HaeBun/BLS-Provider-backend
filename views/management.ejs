@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNEDU | 관리 페이지</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      background-color: #8A2BE2;
+      color: white;
+      padding: 10px 0;
+      margin-bottom: 20px;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo {
+      width: 50px;
+      margin-right: 10px;
+      padding: 5px;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 14px;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #dee2e6;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f8f9fa;
+    }
+
+    /* 모바일 화면일 경우 */
+    @media (max-width: 768px) { 
+      .table-responsive {
+        overflow-x: auto; /* 가로 스크롤 추가 */
+        -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+      }
+
+      table {
+        font-size: 12px; /* 글씨 크기 더 작게 조정 */
+      }
+
+      th, td {
+        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+      }
+    }
+  </style>
+</head>
+<body>
+  <% 
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = ('0' + (date.getMonth() + 1)).slice(-2);
+      const day = ('0' + date.getDate()).slice(-2);
+      const hours = ('0' + date.getHours()).slice(-2);
+      const minutes = ('0' + date.getMinutes()).slice(-2);
+      const seconds = ('0' + date.getSeconds()).slice(-2);
+      return `${year}년 ${month}월 ${day}일`;
+    }
+
+    function formatDuration(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      const formattedTime = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+      return formattedTime;
+    }
+  %>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <img src="/images/snedu_logo.png" alt="Logo" class="logo">
+        <div>
+          <div class="title">Student Nurse Education</div>
+          <div class="subtitle">BLS-Provider 교육용 애플리케이션</div>
+        </div>
+      </div>
+    </div>
+
+    <h1>영상별 시청 현황</h1>
+
+    <% managementData.forEach(function(data, index) { %>
+      <div class="card mb-3"> 
+        <div class="card-header d-flex justify-content-between align-items-center"> 
+          <%= data.video_title %>
+          <a href="/video_excel?video_id=<%= data.video_id %>" class="btn btn-primary" target="_blank">.excel</a> 
+        </div>
+        <div class="card-body">
+          <p>전체 시청 횟수: <%= data.totalViews %></p>
+          <p>완료 횟수: <%= data.completedViews %></p>
+          <p>완료율: <%= data.completionRate %>%</p>
+  
+          <h3>사용자별 시청 정보</h3>
+          <div class="table-responsive"> 
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>사용자 이름</th>
+                  <th>시청 시간</th>
+                  <th>시청 날짜</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% data.userViews.forEach(function(view, index) { %>
+                <tr>
+                  <td><%= index + 1 %></td>
+                  <td><%= view.user_name %></td>
+                  <td><%= formatDuration(view.current_view_duration) %></td>
+                  <td><%= formatDate(view.viewed_at) %></td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div> 
+    <% }); %>
+  </div>
+</body>
+</html>
