@@ -15,6 +15,7 @@ const axios = require('axios');
 const { swaggerUi, specs } = require('./swagger.js'); 
 const pool = require('./util/connectionPool.js');
 const authGoogle = require('./src/auth/google.js');
+const sessionConfig = require('./util/sessionAuth.js');
 
 // web ejs 선언
 app.set('view engine', 'ejs'); // EJS 템플릿 엔진 설정
@@ -31,19 +32,8 @@ app.use(cors({
   credentials: true // 쿠키 등의 자격 증명 허용
 }));
 
-app.use(session({
-  secret: '36e383550d2ca9bcd908add24ffc4afae24ddc3fa038e1201b752001cb5a10ab', // 세션 암호화에 사용되는 비밀 키
-  resave: false, // 세션에 변경 사항이 없어도 항상 저장할지 여부
-  saveUninitialized: true, // 초기화되지 않은 세션을 저장할지 여부
-  cookie: { 
-    secure: true, // HTTPS에서만 쿠키 전송 (배포 환경에서 true로 설정)
-    maxAge: 1000 * 60 * 60 * 24,
-    httpOnly: true // JavaScript에서 쿠키 접근 방지
-  }
-}));
-
+app.use(sessionConfig);
 app.use('/images', express.static('/home/node/src/images')); 
-
 
 app.post('/play', async (req, res) => {
   console.log('/play 접근');
@@ -55,7 +45,7 @@ app.post('/play', async (req, res) => {
   console.log(startTime);
   console.log(authorization);
 
-  res.render('play', { videoId: videoId, startSeconds: startTime, authorization: authorization });
+  res.render('play', { videoId: videoId, startSeconds: startTime, authorization: authorization, currentPage: 'play' });
 });
 
 app.get('/video_upload', async (req, res) => {
@@ -64,62 +54,95 @@ app.get('/video_upload', async (req, res) => {
 
 app.get('/home', (req, res, next) => {
   req.method = 'POST'; // req.method를 POST로 변경
+
+  if(req.query.code) {
+    req.body.authorization = req.query.code;
+  }
   next(); // app.post 라우터로 제어를 넘김
 });
 
 app.post('/home', async (req, res) => {
   let authorization = req.body.authorization;
-  console.log(req.session.authorization);
-  console.log(req.body.authorization);
-  console.log(req.session.socialIdToken);
+  console.log("authorization", authorization);
+  console.log("req.session.authorization = ", req.session.authorization);
+  console.log("req.query.code = ", req.query.code);
 
-  if (authorization) {
-    try {
-      const token = authorization.split(' ')[1]; 
-      console.log('token:', token);
-
-      const rows = await pool.query('SELECT * FROM auths WHERE id_token = ?', [token]);
-
-      if (rows.length > 0) {
-        const tokenCreatedAt = new Date(rows[0].created_at); 
-        const now = new Date();
-        const diff = now.getTime() - tokenCreatedAt.getTime(); // 밀리초 단위 차이
-        const diffHours = Math.floor(diff / (1000 * 60 * 60)); // 시간으로 변환
-
-        if (diffHours < 3) { // 3시간 이내인 경우
-          console.log('authorization:', authorization);
-          console.log('세션:', req.body);
-
-          const userId = rows[0].user_id;
-          const userRows = await pool.query('SELECT user_name FROM users WHERE user_id = ?', [userId]);
-
-          const userName = userRows[0].user_name;
-
-          // 2. user_name을 render에 추가
-          res.render('home', { 
-            authorization: authorization, 
-            userName: userName 
-          });
-
-        } else {
-          console.log('토큰 만료');
-          res.redirect('/'); // 토큰 만료 시 루트 경로로 리다이렉션
-        }
-      }
-      else {
-        console.log('DB에 토큰이 존재하지 않습니다.');
-        res.redirect('/'); // DB에 토큰이 없는 경우 루트 경로로 리다이렉션
-      }
-    }
-    catch(error) {
-      console.error('토큰 추출 오류:', error);
-      res.redirect('/'); // 토큰 추출 오류 시 루트 경로로 리다이렉션
-    }
-  } else {
-    // socialIdToken이 존재하지 않는 경우
-    console.log('authorization 없습니다.');
-    res.redirect('/'); // '/' 경로로 리다이렉션
+  if(req.query.code) {
+    authorization = req.query.code;
+    req.body.authorization = authorization; // req.body.authorization에 값 할당
   }
+console.log(req.body.authorization);
+console.log(req.session.socialIdToken);
+
+if (authorization) {
+  try {
+    const token = authorization.split(' ')[1]; 
+    console.log('token:', token);
+
+    const rows = await pool.query('SELECT * FROM auths WHERE id_token = ?', [token]);
+
+    if (rows.length > 0) {
+      const tokenCreatedAt = new Date(rows[0].created_at); 
+      const now = new Date();
+      const diff = now.getTime() - tokenCreatedAt.getTime(); // 밀리초 단위 차이
+      const diffHours = Math.floor(diff / (1000 * 60 * 60)); // 시간으로 변환
+
+      if (diffHours < 3) { // 3시간 이내인 경우
+        console.log('authorization:', authorization);
+        console.log('세션:', req.body);
+
+        const userId = rows[0].user_id;
+        const userRows = await pool.query('SELECT user_name FROM users WHERE user_id = ?', [userId]);
+
+        const userName = userRows[0].user_name;
+
+        // 비디오 정보 가져오기
+        const videoRows = await pool.query('SELECT * FROM videos');
+        const videos = videoRows;
+
+        // 사용자의 시청 기록 가져오기
+        const viewRows = await pool.query('SELECT * FROM views WHERE user_id = ?', [userId]);
+        const views = viewRows;
+
+        // 각 비디오별 시청률 계산
+        const watchedVideos = videos.map(video => {
+          const view = views.find(view => view.video_id === video.video_id);
+          const percentage = view ? Math.round((view.current_view_duration / video.video_duration) * 100) : 0;
+          return { ...video, percentage };
+        });
+
+        // 전체 시청률 계산
+        const totalDuration = videos.reduce((sum, video) => sum + video.video_duration, 0);
+        const totalWatchedDuration = watchedVideos.reduce((sum, video) => sum + (video.percentage / 100 * video.video_duration), 0);
+        const overallPercentage = Math.round((totalWatchedDuration / totalDuration) * 100);
+
+        // 2. user_name을 render에 추가
+        res.render('home', { 
+          authorization: authorization, 
+          userName: userName,
+          currentPage: 'home',
+          overallPercentage: overallPercentage
+        });
+
+      } else {
+        console.log('토큰 만료');
+        res.redirect('/'); // 토큰 만료 시 루트 경로로 리다이렉션
+      }
+    }
+    else {
+      console.log('DB에 토큰이 존재하지 않습니다.');
+      res.redirect('/'); // DB에 토큰이 없는 경우 루트 경로로 리다이렉션
+    }
+  }
+  catch(error) {
+    console.error('토큰 추출 오류:', error);
+    res.redirect('/'); // 토큰 추출 오류 시 루트 경로로 리다이렉션
+  }
+} else {
+  // socialIdToken이 존재하지 않는 경우
+  console.log('authorization 없습니다.');
+  res.redirect('/'); // '/' 경로로 리다이렉션
+}
 });
 
 app.post('/video_upload', upload.none(), async (req, res) => {
@@ -161,10 +184,6 @@ app.get('/', async (req, res) => {
 
   console.log('code :' + code);
   console.log('token :' + req.session.socialIdToken);
-
-  if(code) {
-    req.session.socialIdToken = code;
-  }
 
   if (req.session.socialIdToken) {
     code = req.session.socialIdToken;
@@ -211,12 +230,11 @@ app.get('/', async (req, res) => {
         // 5. auths 테이블에 accessToken 추가 또는 업데이트
         await updateOrCreateAuthToken(user.user_id, accessToken);
         
-        req.session.socialIdToken = accessToken;
-
-        res.render('home', { 
-          authorization: `Bearer ${accessToken}`, 
-          userName: userName 
-        });
+        // res.render('home', { 
+        //   authorization: `Bearer ${accessToken}`, 
+        //   userName: userName 
+        // });
+        res.redirect(`/home?code=${"bearer " + accessToken}`); // /home 경로로 code 값을 쿼리 파라미터로 전달
 
       } catch (error) {
         console.error(error);
@@ -400,7 +418,7 @@ app.get('/video_excel', async (req, res) => {
 app.post('/update_views', async (req, res) => {
   const authorization = req.body.authorization.split(' ')[1];
   const videoUid = req.body.videoId;
-  const currentViewDuration = req.body.currentViewDuration;
+  let currentViewDuration = req.body.currentViewDuration;
 
   console.log('update_views 요청 수신:', { authorization, videoUid, currentViewDuration });
 
@@ -421,9 +439,9 @@ app.post('/update_views', async (req, res) => {
     const userId = authResults[0].user_id;
     console.log('userId:', userId);
 
-    // 2. videoUid를 사용하여 videos 테이블에서 video_id 조회
+    // 2. videoUid를 사용하여 videos 테이블에서 video_id, video_duration 조회
     const videoResults = await pool.query(
-      'SELECT video_id FROM videos WHERE video_uid = ?',
+      'SELECT video_id, video_duration FROM videos WHERE video_uid = ?',
       videoUid
     );
 
@@ -435,9 +453,17 @@ app.post('/update_views', async (req, res) => {
     }
 
     const videoId = videoResults[0].video_id;
+    const videoDuration = videoResults[0].video_duration;
     console.log('videoId:', videoId);
+    console.log('videoDuration:', videoDuration);
 
-    // 3. user_id, video_id, currentViewDuration을 사용하여 views 테이블에 저장 또는 업데이트
+
+    // 3. 90% 이상 시청 시 100%로 처리
+    if (currentViewDuration >= videoDuration * 0.9) {
+      currentViewDuration = videoDuration; 
+    }
+
+    // 4. user_id, video_id, currentViewDuration을 사용하여 views 테이블에 저장 또는 업데이트
     const viewResults = await pool.query(
       `INSERT INTO views (
         video_id, 
@@ -463,7 +489,7 @@ app.post('/update_views', async (req, res) => {
 
     console.log('views 테이블 업데이트 결과:', viewResults);
     console.log('시청 정보 저장 성공');
-    res.json({ message: '시청 정보 저장 성공' });
+    res.json({ message: '시청 정보 저장 성공'});
   } catch (error) {
     console.error('시청 정보 저장 실패:', error);
     res.status(500).json({ error: '시청 정보 저장 실패' });
@@ -472,15 +498,17 @@ app.post('/update_views', async (req, res) => {
 
 
 app.post('/docs', async (req, res) => {
-  res.render('docs', { pdfURL : "http://tetraplace.com:9000/seoil-bls-provider/snedu_1.pdf"}); // EJS 템플릿에 전달
+  let authorization = req.body.authorization;
+  res.render('docs', { pdfURL : "http://tetraplace.com:9000/seoil-bls-provider/snedu_1.pdf", authorization : authorization, currentPage: 'docs'}); // EJS 템플릿에 전달
 });
 
 app.post('/history', async (req, res) => {
-  try {
-    const authorization = req.body.authorization.split(" ")[1];
+  let authorization = req.body.authorization;
 
+  console.log(authorization);
+  try {
     // 1. auths 테이블에서 user_id 조회
-    const auth = await pool.query('SELECT user_id FROM auths WHERE id_token = ?', [authorization]);
+    const auth = await pool.query('SELECT user_id FROM auths WHERE id_token = ?', [authorization.split(' ')[1]]);
     if (!auth[0]) {
       return res.status(401).send('Unauthorized');
     }
@@ -493,7 +521,11 @@ app.post('/history', async (req, res) => {
     const views = await pool.query('SELECT * FROM views WHERE user_id = ?', [userId]);
 
     // 4. EJS 템플릿에 데이터 전달
-    res.render('history', { videos, views }); 
+    res.render('history', { 
+      videos, 
+      views,
+      authorization: authorization,
+      currentPage: 'history' }); 
   } catch (error) {
     console.error('기록 조회 오류:', error);
     res.status(500).send('기록 조회 오류');

@@ -149,12 +149,7 @@
     }
 
     function kakaoSignIn() {
-      if (window.innerWidth <= 768) { // 모바일 화면인지 확인
-        alert("카카오 로그인 서비스는 현재 PC에서만 지원하고 있습니다."); 
-        return; // 함수 실행 중단
-      } else {
-        window.location.href = kakaoAuth; // PC 화면에서는 기존 카카오 로그인 실행
-      }
+      window.location.href = kakaoAuth; // PC 화면에서는 기존 카카오 로그인 실행
     }
 
     window.addEventListener('message', (event) => {
