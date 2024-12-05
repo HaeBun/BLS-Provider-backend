@@ -67,12 +67,12 @@
       height: 10px;
       background-color: #EF5350; /* 빨간색 진행바 */
       border-radius: 5px;
-      width: 67%; /* 진행률에 따라 변경 */
+      width: <%=overallPercentage%>%; /* 진행률에 따라 변경 */
     }
     .buttons {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+      gap: 16px;
       width: 100%;
       margin-top: 20px;
     }
@@ -105,8 +105,8 @@
       font-weight: bold;
       margin-top: 10px; /* 아이콘과 텍스트 사이 간격 */
     }
-    .button:nth-child(1) { background-color: #EF5350; color: white; } /* 빨간색 버튼 */
-    .button:nth-child(2) { background-color: #4285F4; color: white; } /* 파란색 버튼 */
+    .button:nth-child(1) { background-color: #4285F4; color: white; } /* 빨간색 버튼 */
+    .button:nth-child(2) { background-color: #EF5350; color: white; } /* 파란색 버튼 */
     .button:nth-child(3) { background-color: #73A580; color: white; } /* 초록색 버튼 */
     .button:nth-child(4) { background-color: #3B577C; color: white; } /* 어두운 회색 버튼 */
 
@@ -146,14 +146,21 @@
           <div class="progress">
             <div class="progress-bar"></div>
           </div>
-          <div>67%</div>
+          <div><%= overallPercentage %>%</div>
         </div>
-        <!-- <div class="status-item">
-          <div>시작일 2024-11-05</div>
-          <div>**학습 중**</div> 
-        </div> -->
-      </div>
+    </div>
     <div class="buttons">
+      <form action="/docs" method="post" class="button">
+        <input type="hidden" name="authorization" value="<%= authorization %>">
+        <button type="submit">
+          <div>
+            <img src="images/bls_data_icon.png" alt="이론학습 아이콘" class="button-icon">
+          </div>
+          <div>
+            <span class="button-label">이론학습</span>
+          </div>
+        </button>
+      </form>
       <form action="/play" method="post" class="button">
         <input type="hidden" name="authorization" value="<%= authorization %>">
         <button type="submit">
@@ -162,17 +169,6 @@
           </div>
           <div>
             <span class="button-label">교육영상</span>
-          </div>
-        </button>
-      </form>
-      <form action="/docs" method="post" class="button">
-        <input type="hidden" name="authorization" value="<%= authorization %>">
-        <button type="submit">
-          <div>
-            <img src="images/bls_data_icon.png" alt="기본소생술 자료 아이콘" class="button-icon">
-          </div>
-          <div>
-            <span class="button-label">기본소생술 자료</span>
           </div>
         </button>
       </form>

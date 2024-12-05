@@ -5,13 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>모바일 YouTube 플레이어</title>
 <style>
-  body { margin: 0; }
+  body { 
+    font-family: sans-serif;
+    margin: 0; 
+  }
+
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background-color: #4285F4;
+    color: white;
+    padding: 10px 0;
+    margin-bottom: 20px;
+  }
+  
+  .container .header .header-content .page-buttons button { /* 특이성을 높인 선택자 */
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
   .player-container {
     position: relative;
     width: 100%;
     padding-bottom: 56.25%; /* 16:9 비율 유지 */
     height: 0;
   }
+
   .player-container iframe {
     position: absolute;
     top: 0;
@@ -20,16 +46,53 @@
     height: 100%;
     object-fit: contain; 
   }
+
+  /* PC 화면에 적용될 스타일 */
+  @media (min-width: 768px) {
+    .container {
+      width: 750px; /* 컨테이너 너비 설정 */
+      margin: 0 auto; /* 가운데 정렬 */
+      padding: 50px; /* 패딩 조정 */
+      height: auto; /* 높이 자동 조절 */
+    }
+
+    .title {
+      font-size: 24px; /* 제목 크기 조정 */
+    }
+  }
+
+  /* 모바일 화면일 경우 */
+  @media (max-width: 768px) { 
+    .container {
+      flex-direction: column; 
+      height: auto; 
+    }
+
+    h1 {
+      font-size: 1.5rem; 
+    }
+
+    iframe {
+      width: 100%; /* 모바일에서 iframe 너비 조정 */
+      height: 80vh; 
+    }
+  }
 </style>
 </head>
+
+<%- include('header') %>
 <body>
-<div class="player-container">
-<iframe id="player" 
-        src="https://www.youtube.com/embed/<%= videoId %>?autoplay=0&controls=1&showinfo=0&modestbranding=1&rel=0&fs=1&enablejsapi=1&start=<%= startSeconds %>" 
-        frameborder="0" 
-        allowfullscreen>
-</iframe>
-</div>
+  <div class="container">
+    <h1>기본소생술 자료</h1>
+    <div class="player-container">
+      <iframe id="player" 
+          src="https://www.youtube.com/embed/<%= videoId %>?autoplay=0&controls=1&showinfo=0&modestbranding=1&rel=0&fs=1&enablejsapi=1&start=<%= startSeconds %>" 
+          frameborder="0" 
+          allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
 <script>
   var player; // player 객체를 전역 변수로 선언
   var currentViewDuration; // 현재 시청 시간

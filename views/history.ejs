@@ -11,7 +11,7 @@
     }
 
     .container {
-      padding: 20px;
+      padding: 16px;
     }
 
     .header {
@@ -28,6 +28,23 @@
     .header-content {
       display: flex;
       align-items: center;
+      justify-content: space-between; 
+      width: 100%; 
+    }
+
+    .page-buttons {
+      display: flex; 
+      align-items: center; 
+    }
+
+    .container .header .header-content .page-buttons button { 
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .page-buttons img {
+      width: 30px; 
     }
 
     .logo {
@@ -51,7 +68,7 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
-      font-size: 14px; /* 모바일에서 글씨 크기 조정 */
+      font-size: 14px; 
     }
 
     th, td {
@@ -65,37 +82,63 @@
     }
 
     .progress {
-      width: 100%; /* 모바일에서 너비 조정 */
-      height: 10px;
+      width: 100%; 
+      height: 20px; 
       background-color: #E9ECEF;
       border-radius: 5px;
       margin-bottom: 10px;
       overflow: hidden;
+      display: flex; 
+      align-items: center; 
+      position: relative;
     }
 
     .progress-bar {
-      height: 10px;
+      height: 100%;
       background-color: #EF5350;
       border-radius: 5px;
+      flex-shrink: 0; 
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      color: black; /* 텍스트 색상을 흰색으로 변경 */
     }
 
     /* 모바일 화면일 경우 */
     @media (max-width: 768px) { 
       .table-responsive {
-        overflow-x: auto; /* 가로 스크롤 추가 */
-        -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch; 
+      }
+      
+      .container {
+        flex-direction: column; 
+        height: auto; 
+      }
+
+      .page-buttons img {
+        width: 16px; 
       }
 
       table {
-        font-size: 12px; /* 글씨 크기 더 작게 조정 */
+        font-size: 12px; 
       }
 
       th, td {
-        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        white-space: nowrap; 
+      }
+
+      h1 {
+        font-size: 1.5rem; 
       }
     }
   </style>
 </head>
+<%- include('header') %>
 <body>
   <% 
     function formatDate(dateString) {
@@ -117,19 +160,7 @@
     }
   %>
 
-  
-
   <div class="container">
-    <div class="header">
-      <div class="header-content">
-        <img src="/images/snedu_logo.png" alt="Logo" class="logo">
-        <div>
-          <div class="title">Student Nurse Education</div>
-          <div class="subtitle">BLS-Provider 교육용 애플리케이션</div>
-        </div>
-      </div>
-    </div>
-
     <h1>시청 기록</h1>
 
     <div class="table-responsive"> 
@@ -160,7 +191,8 @@
             <td><%= formatDuration(video.video_duration) %></td>
             <td>
               <div class="progress">
-                <div class="progress-bar" style="width: <%= (view) ? Math.round((view.current_view_duration / video.video_duration) * 100) : 0 %>%;"></div>
+                <div class="progress-bar" style="width: <%= (view) ? Math.round((view.current_view_duration / video.video_duration) * 100) : 0 %>%; background-color: #EF5350;"></div>
+                <span class="progress-text"><%= (view) ? Math.round((view.current_view_duration / video.video_duration) * 100) : 0 %>%</span> 
               </div>
             </td>
             <td>
@@ -176,5 +208,18 @@
       </table>
     </div> 
   </div>
+
+  <script>
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(progressBar => {
+      const percentage = parseInt(progressBar.style.width, 10); 
+      const progressText = progressBar.nextElementSibling; 
+      if (percentage >= 90) {
+        progressText.style.color = 'white';
+      } else {
+        progressText.style.color = 'black';
+      }
+    });
+  </script>
 </body>
 </html>

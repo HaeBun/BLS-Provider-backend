@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SNEDU | 헤더</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> 
+  <style>
+    body { 
+      font-family: sans-serif;
+      margin: 0; 
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      background-color: #4285F4;
+      color: white;
+      padding: 10px 0;
+      margin-bottom: 20px;
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between; 
+      width: 100%; 
+    }
+
+    .page-buttons {
+      display: flex; 
+      align-items: center; 
+    }
+
+    .page-buttons button { 
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .logo {
+      width: 50px;
+      margin-right: 10px;
+      padding: 5px;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .page-buttons img {
+      width: 30px; 
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 14px;
+    }
+
+    /* 모바일 화면일 경우 */
+    @media (max-width: 768px) { 
+      .page-buttons img {
+        width: 16px; 
+      }
+
+      .page-buttons {
+        margin-bottom: 10px; /* 버튼 아래 여백 추가 */
+      }
+
+      .logo {
+        margin: 0; /* 로고 좌우 여백 제거 */
+      }
+
+      .page-buttons img {
+        width: 16px; 
+      }
+
+      .title {
+        font-size: 14px; /* 제목 크기 조정 */
+      }
+
+      .subtitle {
+        font-size: 12px; /* 부제목 크기 조정 */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <div class="page-buttons"> 
+            <% if (currentPage == 'docs') { %>
+              <form action="/home" method="post">
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/prev.png" alt="이전 페이지">
+                </button>
+              </form>
+            <% } else if (currentPage == 'play') { %> 
+              <form action="/docs" method="post"> 
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/prev.png" alt="이전 페이지">
+                </button>
+              </form>
+            <% } else if(currentPage == 'history') { %> 
+              <form action="/play" method="post"> 
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/prev.png" alt="이전 페이지">
+                </button>
+              </form>
+            <% } %>
+          </div>
+        <img src="/images/snedu_logo.png" alt="Logo" class="logo">
+        <div>
+          <div class="title">Student Nurse Education</div>
+          <div class="subtitle">BLS-Provider 교육용 애플리케이션</div>
+        </div>
+        <div class="page-buttons"> 
+            <% if (currentPage == 'docs') { %>
+              <form action="/play" method="post">
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/next.png" alt="다음 페이지">
+                </button>
+              </form>
+            <% } else if (currentPage == 'play') { %> 
+              <form action="/history" method="post">
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/next.png" alt="다음 페이지">
+                </button>
+              </form>
+            <% } else if(currentPage == 'history') { %> 
+              <form action="/home" method="post"> 
+                <input type="hidden" name="authorization" value="<%= authorization %>">
+                <button type="submit">
+                  <img src="/images/next.png" alt="다음 페이지">
+                </button>
+              </form>
+            <% } %>
+          </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
